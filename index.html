@@ -10,6 +10,7 @@
 </head>
 <body>
 
+<div class="scroll-progress" aria-hidden="true"><span id="scrollBar"></span></div>
 <div class="bg-grid" aria-hidden="true"></div>
 <div class="orb orb-a" aria-hidden="true"></div>
 <div class="orb orb-b" aria-hidden="true"></div>
@@ -29,6 +30,10 @@
       <a href="#contact">联系</a>
     </nav>
     <div class="nav-actions">
+      <button class="cmd-btn" id="cmdBtn" type="button" aria-label="打开命令面板">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        <span>搜索</span><kbd>⌘K</kbd>
+      </button>
       <button class="icon-btn" id="themeToggle" type="button" aria-label="切换主题">
         <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
@@ -47,7 +52,8 @@
 <main id="top">
 
   <!-- Hero -->
-  <section class="hero">
+  <section class="hero" id="hero">
+    <div class="hero-spot" aria-hidden="true"></div>
     <div class="container hero-grid">
       <div class="hero-copy">
         <p class="badge reveal"><span class="dot"></span>开放合作 · 远程优先</p>
@@ -55,6 +61,10 @@
           你好，我是 <span class="grad">Eos</span><br />
           一名把想法做成产品的人
         </h1>
+        <p class="typer reveal" aria-live="off">
+          <span class="typer-label">此刻身份</span>
+          <span class="typer-text" id="typerText"></span><span class="typer-caret" aria-hidden="true"></span>
+        </p>
         <p class="lede reveal">
           全栈开发 / 产品设计 / 自动化工具控。喜欢把复杂的事情拆开，再用干净的代码与克制的设计重新组装起来。
           这里是我的个人全能站：作品、技能、随手可用的小工具，以及一些零散思考。
@@ -63,35 +73,35 @@
           <a class="btn btn-primary" href="#projects">查看项目</a>
           <a class="btn btn-ghost" href="#contact">聊聊合作</a>
         </div>
-        <dl class="stats reveal">
-          <div><dt>6<small>年</small></dt><dd>产品研发经验</dd></div>
-          <div><dt>40<small>+</small></dt><dd>交付项目</dd></div>
-          <div><dt>12<small>个</small></dt><dd>开源仓库</dd></div>
+        <dl class="stats reveal" id="stats">
+          <div><dt><span class="count" data-count="6">0</span><small>年</small></dt><dd>产品研发经验</dd></div>
+          <div><dt><span class="count" data-count="40">0</span><small>+</small></dt><dd>交付项目</dd></div>
+          <div><dt><span class="count" data-count="12">0</span><small>个</small></dt><dd>开源仓库</dd></div>
         </dl>
       </div>
 
-      <div class="hero-visual reveal" aria-hidden="true">
+      <div class="hero-visual reveal">
         <div class="glow"></div>
         <div class="terminal">
           <div class="terminal-bar">
             <span></span><span></span><span></span>
             <p>~/eos — zsh</p>
+            <span class="terminal-hint">可交互 · 输入 help</span>
           </div>
-          <pre class="terminal-body"><code><span class="t-p">$</span> whoami
-<span class="t-c"># 全栈开发者 · 产品设计 · 效率工具控</span>
-
-<span class="t-p">$</span> current_focus
-<span class="t-k">{</span>
-  <span class="t-s">"building"</span>: <span class="t-v">"个人全能站"</span>,
-  <span class="t-s">"learning"</span>: <span class="t-v">"AI Agent"</span>,
-  <span class="t-s">"open_to"</span>: <span class="t-b">true</span>
-<span class="t-k">}</span>
-
-<span class="t-p">$</span> ls skills/
-frontend  backend  design  automation
-
-<span class="t-p">$</span> echo "Nice to meet you."
-<span class="t-v">Nice to meet you.</span><span class="caret"></span></code></pre>
+          <div class="terminal-body" id="terminal" tabindex="0" aria-label="交互式终端">
+            <div class="term-output" id="termOutput">
+              <p><span class="t-p">$</span> whoami</p>
+              <p class="t-c"># 全栈开发者 · 产品设计 · 效率工具控</p>
+              <p><span class="t-p">$</span> current_focus</p>
+              <p><span class="t-k">{</span> <span class="t-s">"building"</span>: <span class="t-v">"个人全能站"</span>, <span class="t-s">"learning"</span>: <span class="t-v">"AI Agent"</span> <span class="t-k">}</span></p>
+              <p><span class="t-p">$</span> echo "Nice to meet you."</p>
+              <p class="t-v">Nice to meet you.</p>
+            </div>
+            <div class="term-line">
+              <span class="t-p">$</span>
+              <input class="term-input" id="termInput" type="text" placeholder="help" autocomplete="off" spellcheck="false" aria-label="终端命令输入" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -417,12 +427,35 @@ frontend  backend  design  automation
 
 <footer class="footer">
   <div class="container footer-inner">
-    <p>© <span id="year">2026</span> Eos · 用原生 HTML 手写的个人全能站</p>
+    <p>© <span id="year">2026</span> Eos · 用原生 HTML 手写的个人全能站 · <span id="clock">--:--:--</span> CST</p>
     <a href="#top">回到顶部 ↑</a>
   </div>
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<button class="to-top" id="toTop" type="button" aria-label="回到顶部">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+</button>
+
+<div class="cmd-overlay" id="cmdOverlay" hidden>
+  <div class="cmd" role="dialog" aria-modal="true" aria-label="命令面板">
+    <div class="cmd-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+      <input id="cmdInput" type="text" placeholder="搜索板块、项目、工具或执行命令…" autocomplete="off" />
+      <kbd>ESC</kbd>
+    </div>
+    <ul class="cmd-list" id="cmdList" role="listbox"></ul>
+    <div class="cmd-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+      <span><kbd>↵</kbd> 执行</span>
+      <span><kbd>⌘K</kbd> 随时唤起</span>
+    </div>
+  </div>
+</div>
+
+<canvas id="matrixCanvas" class="matrix-canvas" hidden></canvas>
+<canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
 
 <script src="app.js"></script>
 </body>
