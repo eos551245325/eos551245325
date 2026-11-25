@@ -262,7 +262,7 @@
       <header class="section-head reveal">
         <p class="eyebrow">04 / 星球</p>
         <h2>提瓦特星球 · 可缩放的 3D 世界</h2>
-        <p class="section-sub">拖拽旋转、滚轮或双指缩放，一路推到地表。星空、海陆与七国全部由 WebGL 程序化生成，不依赖任何外部资源。</p>
+        <p class="section-sub">拖拽旋转、滚轮或双指缩放，一路推到地表。星球表面来自提瓦特真实大地图投影，叠加云层、光照与星空；不支持 WebGL 时自动切换静态视图。</p>
       </header>
 
       <div class="planet-shell reveal">
@@ -279,7 +279,8 @@
 
           <div class="planet-fallback" id="planetFallback" hidden>
             <div class="fallback-orb" aria-hidden="true"></div>
-            <p>当前浏览器未启用 WebGL，已切换为静态星球视图。</p>
+            <p id="planetFallbackMsg">当前浏览器未启用 WebGL，已切换为静态星球视图。</p>
+            <button class="planet-retry" id="planetRetry" type="button">重新加载 3D 视图</button>
           </div>
 
           <div class="planet-hint" id="planetHint">拖拽旋转 · 滚轮缩放 · 双击重置</div>

@@ -1375,6 +1375,31 @@ body.cmd-open { overflow: hidden; }
     0 0 90px rgba(34, 211, 238, 0.28);
 }
 
+/* 无 WebGL 时的 2D 兼容星球 */
+.fallback-globe {
+  width: min(320px, 56vw);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 54px rgba(34, 211, 238, 0.22));
+}
+
+.planet-retry {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.planet-retry:hover {
+  background: rgba(124, 92, 255, 0.22);
+  border-color: rgba(124, 92, 255, 0.5);
+  transform: translateY(-1px);
+}
+
 /* 操作提示 */
 .planet-hint {
   position: absolute;

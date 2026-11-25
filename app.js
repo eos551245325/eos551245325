@@ -988,22 +988,46 @@
   var MIN_DIST = 1.02, MAX_DIST = 3.45, START_T = 0.26;
   var FOV = Math.PI * 50 / 180;
 
+  /* 提瓦特贴图与球面的经纬度换算。
+     贴图范围来自观测枢 tiles 拼合后的裁剪框；与球面之间做了水平 + 垂直翻转，
+     保证「东（稻妻）在球的右侧、北（至冬）在上方」符合真实地理朝向。 */
+  var MAP_GEO = { lonMin: -10, lonSpan: 145, latTop: 62, latBot: -38 };
+  function mercYOf(latDeg) {
+    var la = latDeg * Math.PI / 180;
+    return 0.5 - Math.log(Math.tan(Math.PI / 4 + la / 2)) / (2 * Math.PI);
+  }
+  var MERC_TOP = mercYOf(MAP_GEO.latTop);
+  var MERC_BOT = mercYOf(MAP_GEO.latBot);
+
+  // 地图 UV(0..1) → 球面经纬度（与 shader 采样完全互为逆运算）
+  function mapUvToGeo(mu, mv) {
+    var mer = MERC_BOT + (1 - mv) * (MERC_TOP - MERC_BOT);
+    var lat = (2 * Math.atan(Math.exp((0.5 - mer) * 2 * Math.PI)) - Math.PI / 2) * 180 / Math.PI;
+    return { lon: (1 - mu) * MAP_GEO.lonSpan + MAP_GEO.lonMin, lat: lat };
+  }
+
+  // 七国在图上的位置：由观测枢对应「神瞳」点位的坐标中位数换算而来
   var NATIONS = [
-    { name: "蒙德", sub: "风与自由", lon: 40, lat: 34, color: "#7fbf5f",
+    { name: "蒙德", sub: "风与自由", mu: 0.7926, mv: 0.4943, color: "#7fbf5f",
       pal: [[104, 158, 82], [158, 190, 120], [126, 132, 118], [214, 208, 158]] },
-    { name: "璃月", sub: "岩与契约", lon: 75, lat: 20, color: "#d9b168",
+    { name: "璃月", sub: "岩与契约", mu: 0.7260, mv: 0.5800, color: "#d9b168",
       pal: [[176, 138, 78], [214, 178, 112], [124, 100, 70], [226, 204, 152]] },
-    { name: "稻妻", sub: "雷与永恒", lon: 108, lat: 34, color: "#b07fd8",
+    { name: "稻妻", sub: "雷与永恒", mu: 0.9106, mv: 0.8407, color: "#b07fd8",
       pal: [[142, 104, 180], [190, 150, 214], [104, 82, 128], [224, 190, 232]] },
-    { name: "须弥", sub: "草与智慧", lon: 57, lat: 10, color: "#4fae7a",
+    { name: "须弥", sub: "草与智慧", mu: 0.5337, mv: 0.6845, color: "#4fae7a",
       pal: [[74, 150, 106], [120, 190, 144], [86, 110, 86], [176, 214, 164]] },
-    { name: "枫丹", sub: "水与正义", lon: 82, lat: 6, color: "#6fb8d8",
+    { name: "枫丹", sub: "水与正义", mu: 0.5525, mv: 0.4247, color: "#6fb8d8",
       pal: [[88, 158, 190], [150, 204, 224], [96, 116, 128], [196, 232, 242]] },
-    { name: "纳塔", sub: "火与战争", lon: 94, lat: -36, color: "#d86a4a",
+    { name: "纳塔", sub: "火与战争", mu: 0.2846, mv: 0.7159, color: "#d86a4a",
       pal: [[188, 84, 60], [224, 140, 86], [112, 62, 54], [230, 168, 118]] },
-    { name: "至冬", sub: "冰与不屈", lon: 88, lat: 56, color: "#cfe6f5",
+    { name: "至冬", sub: "冰与不屈", mu: 0.4523, mv: 0.0952, color: "#cfe6f5",
       pal: [[176, 206, 222], [222, 240, 250], [142, 166, 184], [236, 246, 255]] }
-  ];
+  ].map(function (n) {
+    var g = mapUvToGeo(n.mu, n.mv);
+    n.lon = g.lon;
+    n.lat = g.lat;
+    return n;
+  });
 
   var anchors = NATIONS.map(function (n) {
     var la = n.lat * Math.PI / 180;
@@ -1263,12 +1287,12 @@
   var teyvatAlbedoTex = null, teyvatMaskTex = null;
   var proj = null;
   var dist = distFromT(START_T), targetDist = dist;
-  var yaw = 3.018, pitch = -0.493, vyaw = 0, vpitch = 0;
+  var yaw = 2.02, pitch = -0.566, vyaw = 0, vpitch = 0;
   var autoSpin = true, showTags = true;
   var ready = false, running = false, started = false;
   var cloudSpin = 0, lastFrame = 0;
   var viewW = 1, viewH = 1;
-  var LIGHT = [-0.78, 0.34, 0.52];
+  var LIGHT = [-0.42, 0.34, 0.84];
 
   var VS = [
     "attribute vec3 aPos;",
@@ -1305,8 +1329,6 @@
     "uniform vec3 uLight;",
     "uniform float uDetail;",
     "uniform float uTeyvatEnabled;",
-    "",
-    "float radians(float deg) { return deg * 0.01745329251; }",
     "",
     "vec2 projectMercator(float lonRad, float latRad) {",
     "  float x = lonRad / 6.283185307 + 0.5;",
@@ -1370,6 +1392,7 @@
     "  albedo += ocean * vec3(0.02, 0.05, 0.07) * (fine - 0.5) * uDetail;",
     "",
     "  // === 真实提瓦特地图像素化覆盖 ===",
+    "  float mapMask = 0.0;",
     "  if (uTeyvatEnabled > 0.5) {",
     "    // 球面 UV → 经纬度（等距圆柱）",
     "    float lonRad = vUv.x * 6.283185307 - 3.141592653;",
@@ -1379,15 +1402,17 @@
     "",
     "    // 提瓦特地图经纬度范围（手工拟合自观测枢 tiles）",
     "    // 左下 ≈ (-10°W, -38°S), 右上 ≈ (+135°E, +62°N)",
-    "    float tlx = (lonDeg - (-10.0)) / (135.0 - (-10.0));",
+    "    // 水平翻转：贴图东侧（稻妻）落在球面右侧，符合从外侧看地球的方向",
+    "    float tlx = 1.0 - (lonDeg - (-10.0)) / (135.0 - (-10.0));",
     "    float tly = (latDeg - (-38.0)) / (62.0 - (-38.0));",
     "",
     "    // Web Mercator 纬度校正（更贴合观测枢的投影）",
     "    float latN = clamp(latDeg * 0.01745329251, -1.484, 1.484);",
-    "    float mercY = 0.5 - log(tan(1.570796327 + latN * 0.5)) / 12.566370614;",
-    "    float mercYTop = 0.5 - log(tan(1.570796327 + radians(62.0) * 0.5)) / 12.566370614;",
-    "    float mercYBot = 0.5 - log(tan(1.570796327 + radians(-38.0) * 0.5)) / 12.566370614;",
-    "    tly = clamp((mercY - mercYBot) / (mercYTop - mercYBot), 0.0, 1.0);",
+    "    float mercY = 0.5 - log(tan(0.7853981634 + latN * 0.5)) / 6.283185307;",
+    "    float mercYTop = 0.5 - log(tan(0.7853981634 + radians(62.0) * 0.5)) / 6.283185307;",
+    "    float mercYBot = 0.5 - log(tan(0.7853981634 + radians(-38.0) * 0.5)) / 6.283185307;",
+    "    // 垂直翻转：贴图第 0 行是北方，映射到球面高纬度",
+    "    tly = 1.0 - clamp((mercY - mercYBot) / (mercYTop - mercYBot), 0.0, 1.0);",
     "    tlx = clamp(tlx, 0.0, 1.0);",
     "",
     "    bool inMap = (tlx > -0.02 && tlx < 1.02 && tly > -0.02 && tly < 1.02);",
@@ -1395,12 +1420,14 @@
     "      vec4 tAlbedo = texture2D(uTeyvatTex, vec2(tlx, tly));",
     "      float tMask = texture2D(uTeyvatMaskTex, vec2(tlx, tly)).r;",
     "      // 边缘软混合，避免硬切",
-    "      float edge = smoothstep(0.0, 0.04, tlx) * smoothstep(0.0, 0.04, 1.0 - tlx) *",
-    "                   smoothstep(0.0, 0.04, tly) * smoothstep(0.0, 0.04, 1.0 - tly);",
-    "      float landBlend = tMask * edge;",
-    "      albedo = mix(albedo, tAlbedo.rgb, landBlend);",
-    "      // 修正 ocean 判断：陆地 → ocean=0",
-    "      ocean = mix(ocean, 0.0, tMask);",
+    "      float edge = smoothstep(0.0, 0.02, tlx) * smoothstep(0.0, 0.02, 1.0 - tlx) *",
+    "                   smoothstep(0.0, 0.02, tly) * smoothstep(0.0, 0.02, 1.0 - tly);",
+    "      // 地图之外统一按深海处理，和真实海洋无缝衔接",
+    "      vec3 mapCol = tAlbedo.rgb * (0.92 + 0.16 * fine);",
+    "      vec3 seaCol = vec3(0.028, 0.075, 0.175);",
+    "      albedo = mix(seaCol, mapCol, edge);",
+    "      ocean = mix(1.0, 1.0 - tMask, edge);",
+    "      mapMask = edge;",
     "    }",
     "  }",
     "",
@@ -1412,15 +1439,17 @@
     "  spec += pow(max(dot(Nb, halfDir), 0.0), 140.0) * ocean * (0.06 + uDetail * 0.20);",
     "",
     "  vec3 col = albedo * (0.13 + 1.06 * ndl);",
+    "  spec *= 1.0 - 0.75 * mapMask;",
     "  col += vec3(1.0, 0.96, 0.88) * spec;",
-    "  col += albedo * vec3(0.03, 0.05, 0.10) * (1.0 - ndlSoft);",
+    "  // 真实地图区域减少大气雾感，避免糊成一片",
+    "  col += albedo * vec3(0.03, 0.05, 0.10) * (1.0 - ndlSoft) * (1.0 - 0.9 * mapMask);",
     "",
     "  float night = smoothstep(0.18, 0.0, ndl);",
     "  float cityNoise = smoothstep(0.55, 0.8, fbm(vUv * vec2(1500.0, 750.0)));",
     "  col += vec3(1.0, 0.72, 0.38) * mask.b * cityNoise * night * 0.9;",
     "",
     "  float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);",
-    "  col += vec3(0.32, 0.55, 1.0) * fres * (0.45 + 0.55 * ndlSoft) * 0.9;",
+    "  col += vec3(0.32, 0.55, 1.0) * fres * (0.45 + 0.55 * ndlSoft) * 0.9 * (1.0 - 0.5 * mapMask);",
     "",
     "  gl_FragColor = vec4(col, 1.0);",
     "}"
@@ -1637,7 +1666,7 @@
     gl.uniform1f(cloudProg.uDist, dist);
     gl.uniform1f(cloudProg.uScale, 1.008);
     gl.uniform3f(cloudProg.uLight, LIGHT[0], LIGHT[1], LIGHT[2]);
-    gl.uniform1f(cloudProg.uOpacity, 0.04 + 0.68 * clamp((dist - 1.05) / 1.4, 0, 1));
+    gl.uniform1f(cloudProg.uOpacity, 0.02 + 0.34 * clamp((dist - 1.05) / 1.4, 0, 1));
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, cloudTex);
     gl.uniform1i(cloudProg.uClouds, 2);
@@ -1684,8 +1713,8 @@
   }
 
   function resetView() {
-    yaw = 3.018;
-    pitch = -0.493;
+    yaw = 2.02;
+    pitch = -0.566;
     vyaw = 0;
     vpitch = 0;
     targetDist = distFromT(START_T);
@@ -1886,6 +1915,14 @@
   if (zoomOutBtn) zoomOutBtn.addEventListener("click", function () { nudgeZoom(-0.07); });
   if (resetBtn) resetBtn.addEventListener("click", resetView);
 
+  var retryBtn = document.getElementById("planetRetry");
+  if (retryBtn) retryBtn.addEventListener("click", function () { window.location.reload(); });
+
+  canvas.addEventListener("webglcontextlost", function (e) {
+    e.preventDefault();
+    fail("context", e);
+  });
+
   if (spinBtn) {
     spinBtn.setAttribute("aria-pressed", "true");
     spinBtn.addEventListener("click", function () {
@@ -1929,21 +1966,35 @@
   }
   window.addEventListener("resize", function () { if (started) resize(); });
 
-  function begin() {
-    try {
-      gl = canvas.getContext("webgl", { alpha: true, antialias: true, premultipliedAlpha: false }) ||
-           canvas.getContext("experimental-webgl", { alpha: true, antialias: true });
-    } catch (err) {
-      gl = null;
+  // 尽量拿到可用的 GL 上下文：不同浏览器 / 关闭硬件加速时表现不一，
+  // 依次尝试 webgl、experimental-webgl、webgl2，并显式允许软件渲染。
+  function getGLContext() {
+    var attrs = {
+      alpha: true,
+      antialias: true,
+      premultipliedAlpha: false,
+      failIfMajorPerformanceCaveat: false
+    };
+    var names = ["webgl", "experimental-webgl", "webgl2"];
+    for (var i = 0; i < names.length; i++) {
+      try {
+        var c = canvas.getContext(names[i], attrs);
+        if (c) return c;
+      } catch (e) {}
     }
-    if (!gl) { fail(); return; }
+    return null;
+  }
+
+  function begin() {
+    gl = getGLContext();
+    if (!gl) { fail("webgl"); return; }
 
     try {
       planetProg = makeProgram(PLANET_FS);
       cloudProg = makeProgram(CLOUD_FS);
       sphere = makeSphere(96, 192);
     } catch (err2) {
-      fail();
+      fail("shader", err2);
       return;
     }
 
@@ -1957,7 +2008,7 @@
         maskTex = uploadTexture(maskCanvas);
         cloudTex = uploadTexture(cloudCanvas);
       } catch (err3) {
-        fail();
+        fail("texture", err3);
         return;
       }
       ready = true;
@@ -1977,21 +2028,192 @@
         img.onerror = function () { onDone(null); };
         img.src = src;
       }
+      // 兼容处理：非 2 次幂纹理在 WebGL1 下不能生成 mipmap；
+      // 同时超过设备最大纹理尺寸时先缩到画布再上传。
+      function uploadImageTexture(img) {
+        var max = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048;
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        var source = img;
+        if (w > max || h > max) {
+          var scale = Math.min(max / w, max / h);
+          var cw = Math.max(1, Math.floor(w * scale));
+          var ch = Math.max(1, Math.floor(h * scale));
+          var c = document.createElement("canvas");
+          c.width = cw; c.height = ch;
+          c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+          source = c;
+        }
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        return tex;
+      }
       loadTeyvatImg("teyvat-albedo.png", function (img) {
         if (!img || !gl) return;
-        try { teyvatAlbedoTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, teyvatAlbedoTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.generateMipmap(gl.TEXTURE_2D); } catch (e) {}
+        try { teyvatAlbedoTex = uploadImageTexture(img); } catch (e) {}
       });
       loadTeyvatImg("teyvat-mask.png", function (img) {
         if (!img || !gl) return;
-        try { teyvatMaskTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, teyvatMaskTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.generateMipmap(gl.TEXTURE_2D); } catch (e) {}
+        try { teyvatMaskTex = uploadImageTexture(img); } catch (e) {}
       });
     });
   }
 
-  function fail() {
+  /* ============================================================
+     无 WebGL 时的 2D 兼容星球：用 Canvas 直接做正交投影，
+     仍然使用同一张真实提瓦特地图，保证「没开硬件加速也有星球看」。
+     ============================================================ */
+  var softGlobeStarted = false;
+
+  function startSoftGlobe() {
+    if (softGlobeStarted || !fallbackEl) return;
+    softGlobeStarted = true;
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () { buildSoftGlobe(img); };
+    img.onerror = function () { softGlobeStarted = false; };
+    img.src = "teyvat-albedo.png";
+  }
+
+  function buildSoftGlobe(img) {
+    var SW = 512;
+    var SH = Math.max(1, Math.round(SW * (img.naturalHeight || img.height) / (img.naturalWidth || img.width)));
+    var sc = document.createElement("canvas");
+    sc.width = SW;
+    sc.height = SH;
+    var sctx = sc.getContext("2d");
+    sctx.drawImage(img, 0, 0, SW, SH);
+    var src;
+    try { src = sctx.getImageData(0, 0, SW, SH).data; } catch (e) { return; }
+
+    var N = 320;
+    var cv = document.createElement("canvas");
+    cv.width = N;
+    cv.height = N;
+    cv.className = "fallback-globe";
+    cv.setAttribute("role", "img");
+    cv.setAttribute("aria-label", "提瓦特星球（2D 兼容视图）");
+    var ctx2 = cv.getContext("2d");
+    var out = ctx2.createImageData(N, N);
+    var od = out.data;
+
+    // 预计算：每条屏幕像素对应的相机空间球面法线与边缘抗锯齿权重
+    var nx = new Float32Array(N * N);
+    var ny = new Float32Array(N * N);
+    var nz = new Float32Array(N * N);
+    var alpha = new Float32Array(N * N);
+    for (var y = 0; y < N; y++) {
+      for (var x = 0; x < N; x++) {
+        var i = y * N + x;
+        var ux = (x + 0.5) / N * 2 - 1;
+        var uy = 1 - (y + 0.5) / N * 2;
+        var d2 = ux * ux + uy * uy;
+        if (d2 >= 1) { alpha[i] = 0; continue; }
+        nx[i] = ux;
+        ny[i] = uy;
+        nz[i] = Math.sqrt(1 - d2);
+        alpha[i] = Math.min(1, (1 - Math.sqrt(d2)) * N * 0.55);
+      }
+    }
+
+    var lightX = -0.42, lightY = 0.34, lightZ = 0.84;
+    var ll = Math.sqrt(lightX * lightX + lightY * lightY + lightZ * lightZ);
+    lightX /= ll; lightY /= ll; lightZ /= ll;
+
+    var spin = yaw;
+
+    function render() {
+      var ca = Math.cos(spin), sa = Math.sin(spin);
+      var cb = Math.cos(pitch), sb = Math.sin(pitch);
+      var r0x = ca, r0y = 0, r0z = -sa;
+      var r1x = sa * sb, r1y = cb, r1z = ca * sb;
+      var r2x = sa * cb, r2y = -sb, r2z = ca * cb;
+
+      for (var i = 0; i < N * N; i++) {
+        var a = alpha[i];
+        var o = i * 4;
+        if (a <= 0) { od[o + 3] = 0; continue; }
+
+        var px = nx[i], py = ny[i], pz = nz[i];
+        var wx = r0x * px + r0y * py + r0z * pz;
+        var wy = r1x * px + r1y * py + r1z * pz;
+        var wz = r2x * px + r2y * py + r2z * pz;
+
+        var latDeg = Math.asin(Math.max(-1, Math.min(1, wy))) * 57.29577951;
+        var lonDeg = Math.atan2(-wz, -wx) * 57.29577951;
+
+        var tlx = 1 - (lonDeg - MAP_GEO.lonMin) / MAP_GEO.lonSpan;
+        var latRad = latDeg * 0.01745329252;
+        var mer = 0.5 - Math.log(Math.tan(0.7853981634 + latRad * 0.5)) / 6.283185307;
+        var tly = 1 - (mer - MERC_BOT) / (MERC_TOP - MERC_BOT);
+
+        var r = 14, g = 34, b = 62;
+        if (tlx > 0 && tlx < 1 && tly > 0 && tly < 1) {
+          var sx = Math.min(SW - 1, Math.max(0, Math.round(tlx * SW)));
+          var sy = Math.min(SH - 1, Math.max(0, Math.round(tly * SH)));
+          var s = (sy * SW + sx) * 4;
+          r = src[s]; g = src[s + 1]; b = src[s + 2];
+        }
+
+        var ndl = Math.max(0, wx * lightX + wy * lightY + wz * lightZ);
+        var shade = 0.30 + 0.92 * ndl;
+        var rim = Math.pow(1 - pz, 3) * 0.55;
+        r = Math.min(255, r * shade + 60 * rim);
+        g = Math.min(255, g * shade + 120 * rim);
+        b = Math.min(255, b * shade + 190 * rim);
+
+        od[o] = r; od[o + 1] = g; od[o + 2] = b;
+        od[o + 3] = a * 255;
+      }
+      ctx2.putImageData(out, 0, 0);
+    }
+
+    var orb = fallbackEl.querySelector(".fallback-orb");
+    if (orb) orb.style.display = "none";
+    fallbackEl.insertBefore(cv, fallbackEl.firstChild);
+    render();
+
+    if (reduceMotion) return;
+
+    var fwd = document.getElementById("planetSpin");
+    var spinning = true;
+    if (fwd) {
+      spinning = fwd.getAttribute("aria-pressed") !== "false";
+      fwd.addEventListener("click", function () {
+        spinning = fwd.getAttribute("aria-pressed") !== "false";
+      });
+    }
+    var last = 0;
+    function loop(now) {
+      requestAnimationFrame(loop);
+      if (!spinning || document.hidden) return;
+      if (now - last < 60) return;
+      last = now;
+      spin += 0.006;
+      render();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function fail(reason, err) {
     ready = false;
+    if (err && window.console) console.error("[planet] " + (reason || "init") + " failed:", err);
     if (loadingEl) loadingEl.classList.add("hide");
-    if (fallbackEl) fallbackEl.hidden = false;
+    if (fallbackEl) {
+      fallbackEl.hidden = false;
+        var msg = document.getElementById("planetFallbackMsg");
+      if (msg) {
+        msg.textContent = reason === "webgl"
+          ? "这台浏览器没有启用 WebGL（常见于关闭了「使用硬件加速」）。已切换为 2D 兼容星球，画面仍使用真实提瓦特地图。"
+          : "3D 星球初始化失败，已切换到 2D 兼容星球。点击重试；若仍失败，请更新浏览器或开启硬件加速。";
+      }
+      startSoftGlobe();
+    }
     resize();
   }
 
