@@ -1288,11 +1288,57 @@
   var proj = null;
   var dist = distFromT(START_T), targetDist = dist;
   var yaw = 2.02, pitch = -0.566, vyaw = 0, vpitch = 0;
+  var orbit = quaternionFromYawPitch(yaw, pitch);
   var autoSpin = true, showTags = true;
   var ready = false, running = false, started = false;
   var cloudSpin = 0, lastFrame = 0;
   var viewW = 1, viewH = 1;
   var LIGHT = [-0.42, 0.34, 0.84];
+
+  function quaternionFromYawPitch(y, p) {
+    var cy = Math.cos(y * 0.5), sy = Math.sin(y * 0.5);
+    var cp = Math.cos(p * 0.5), sp = Math.sin(p * 0.5);
+    return { x: cy * sp, y: sy * cp, z: -sy * sp, w: cy * cp };
+  }
+
+  // 相机空间轨迹球：拖拽方向始终对应当前屏幕，不存在俯仰角上限或万向节锁。
+  function rotateOrbit(horizontal, vertical) {
+    var angle = Math.sqrt(horizontal * horizontal + vertical * vertical);
+    if (angle < 0.000001) return;
+    var s = Math.sin(angle * 0.5) / angle;
+    var dx = vertical * s, dy = horizontal * s;
+    var dw = Math.cos(angle * 0.5);
+    var x = orbit.x, y = orbit.y, z = orbit.z, w = orbit.w;
+    orbit.x = dw * x + dx * w + dy * z;
+    orbit.y = dw * y - dx * z + dy * w;
+    orbit.z = dw * z + dx * y - dy * x;
+    orbit.w = dw * w - dx * x - dy * y;
+    var len = Math.sqrt(orbit.x * orbit.x + orbit.y * orbit.y + orbit.z * orbit.z + orbit.w * orbit.w) || 1;
+    orbit.x /= len;
+    orbit.y /= len;
+    orbit.z /= len;
+    orbit.w /= len;
+  }
+
+  function orbitMatrix(q, extraYaw) {
+    var x = q.x, y = q.y, z = q.z, w = q.w;
+    if (extraYaw) {
+      var s = Math.sin(extraYaw * 0.5), c = Math.cos(extraYaw * 0.5);
+      var ox = x, oy = y, oz = z, ow = w;
+      x = c * ox + s * oz;
+      y = c * oy + s * ow;
+      z = c * oz - s * ox;
+      w = c * ow - s * oy;
+    }
+    var xx = x * x, yy = y * y, zz = z * z;
+    var xy = x * y, xz = x * z, yz = y * z;
+    var wx = w * x, wy = w * y, wz = w * z;
+    return new Float32Array([
+      1 - 2 * (yy + zz), 2 * (xy + wz), 2 * (xz - wy),
+      2 * (xy - wz), 1 - 2 * (xx + zz), 2 * (yz + wx),
+      2 * (xz + wy), 2 * (yz - wx), 1 - 2 * (xx + yy)
+    ]);
+  }
 
   var VS = [
     "attribute vec3 aPos;",
@@ -1602,13 +1648,7 @@
     gl.disable(gl.BLEND);
     gl.disable(gl.CULL_FACE);
 
-    var ca = Math.cos(yaw), sa = Math.sin(yaw);
-    var cb = Math.cos(pitch), sb = Math.sin(pitch);
-    var rot = new Float32Array([
-      ca, 0, -sa,
-      sa * sb, cb, ca * sb,
-      sa * cb, -sb, ca * cb
-    ]);
+    var rot = orbitMatrix(orbit);
 
     gl.useProgram(planetProg.prog);
     gl.bindBuffer(gl.ARRAY_BUFFER, sphere.pos);
@@ -1641,13 +1681,7 @@
     gl.uniform1f(planetProg.uTeyvatEnabled, teyvatAlbedoTex ? 1.0 : 0.0);
     gl.drawElements(gl.TRIANGLES, sphere.count, gl.UNSIGNED_SHORT, 0);
 
-    var cy = yaw + cloudSpin;
-    var cca = Math.cos(cy), csa = Math.sin(cy);
-    var crot = new Float32Array([
-      cca, 0, -csa,
-      csa * sb, cb, cca * sb,
-      csa * cb, -sb, cca * cb
-    ]);
+    var crot = orbitMatrix(orbit, cloudSpin);
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -1715,6 +1749,7 @@
   function resetView() {
     yaw = 2.02;
     pitch = -0.566;
+    orbit = quaternionFromYawPitch(yaw, pitch);
     vyaw = 0;
     vpitch = 0;
     targetDist = distFromT(START_T);
@@ -1759,15 +1794,14 @@
     if (!w || !h) return;
     var f = 1 / Math.tan(FOV / 2);
     var aspect = w / h;
-    var ca = Math.cos(yaw), sa = Math.sin(yaw);
-    var cb = Math.cos(pitch), sb = Math.sin(pitch);
+    var rot = orbitMatrix(orbit);
 
     for (var i = 0; i < anchors.length; i++) {
       var el = labelNodes[i];
       var an = anchors[i];
-      var qx = ca * an.x + sa * sb * an.y + sa * cb * an.z;
-      var qy = cb * an.y - sb * an.z;
-      var qz = -sa * an.x + ca * sb * an.y + ca * cb * an.z;
+      var qx = rot[0] * an.x + rot[3] * an.y + rot[6] * an.z;
+      var qy = rot[1] * an.x + rot[4] * an.y + rot[7] * an.z;
+      var qz = rot[2] * an.x + rot[5] * an.y + rot[8] * an.z;
       var denom = dist - qz;
       var show = showTags && qz > 0.05 && denom > 0.03 && dist > 1.25;
       if (show) {
@@ -1799,14 +1833,13 @@
 
     if (!dragging && !pinching) {
       if (Math.abs(vyaw) > 0.00002 || Math.abs(vpitch) > 0.00002) {
-        yaw += vyaw;
-        pitch = clamp(pitch + vpitch, -1.15, 1.15);
+        rotateOrbit(vyaw, vpitch);
         vyaw *= 0.94;
         vpitch *= 0.94;
       }
       if (autoSpin && !reduceMotion && now > spinHoldUntil) {
         var spd = 0.035 * clamp((dist - 1) / 1.6, 0.16, 1);
-        yaw += dt * spd;
+        rotateOrbit(dt * spd, 0);
       }
     }
     if (!reduceMotion) cloudSpin += dt * (autoSpin ? 0.012 : 0.004);
@@ -1821,10 +1854,10 @@
 
   canvas.tabIndex = 0;
   canvas.addEventListener("keydown", function (e) {
-    if (e.key === "ArrowLeft") { yaw -= 0.08; e.preventDefault(); }
-    else if (e.key === "ArrowRight") { yaw += 0.08; e.preventDefault(); }
-    else if (e.key === "ArrowUp") { pitch = clamp(pitch - 0.06, -1.15, 1.15); e.preventDefault(); }
-    else if (e.key === "ArrowDown") { pitch = clamp(pitch + 0.06, -1.15, 1.15); e.preventDefault(); }
+    if (e.key === "ArrowLeft") { rotateOrbit(-0.08, 0); e.preventDefault(); }
+    else if (e.key === "ArrowRight") { rotateOrbit(0.08, 0); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { rotateOrbit(0, -0.06); e.preventDefault(); }
+    else if (e.key === "ArrowDown") { rotateOrbit(0, 0.06); e.preventDefault(); }
     else if (e.key === "+" || e.key === "=") { nudgeZoom(0.06); e.preventDefault(); }
     else if (e.key === "-" || e.key === "_") { nudgeZoom(-0.06); e.preventDefault(); }
     else if (e.key === "0") { resetView(); e.preventDefault(); }
@@ -1873,8 +1906,7 @@
     var dy = e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
-    yaw += dx * 0.0055;
-    pitch = clamp(pitch + dy * 0.0055, -1.15, 1.15);
+    rotateOrbit(dx * 0.0055, dy * 0.0055);
     vyaw = dx * 0.0035;
     vpitch = dy * 0.0035;
   });
