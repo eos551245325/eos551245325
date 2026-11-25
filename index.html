@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Eos · 个人全能站</title>
+<meta name="description" content="Eos 的个人全能站：个人介绍、技能栈、作品集、效率工具箱与随笔。" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c5cff'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Ctext x='50' y='68' font-size='56' font-family='Arial' font-weight='bold' fill='%230a0a12' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="orb orb-a" aria-hidden="true"></div>
+<div class="orb orb-b" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#top">
+      <span class="logo-mark">E</span>
+      <span class="logo-text">Eos<em>.space</em></span>
+    </a>
+    <nav class="nav-links" id="navLinks" aria-label="主导航">
+      <a href="#about">关于</a>
+      <a href="#skills">技能</a>
+      <a href="#projects">项目</a>
+      <a href="#toolbox">工具箱</a>
+      <a href="#notes">随笔</a>
+      <a href="#contact">联系</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="切换主题">
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+        </svg>
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7Z"/>
+        </svg>
+      </button>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="打开菜单" aria-expanded="false">
+        <span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="badge reveal"><span class="dot"></span>开放合作 · 远程优先</p>
+        <h1 class="reveal">
+          你好，我是 <span class="grad">Eos</span><br />
+          一名把想法做成产品的人
+        </h1>
+        <p class="lede reveal">
+          全栈开发 / 产品设计 / 自动化工具控。喜欢把复杂的事情拆开，再用干净的代码与克制的设计重新组装起来。
+          这里是我的个人全能站：作品、技能、随手可用的小工具，以及一些零散思考。
+        </p>
+        <div class="hero-cta reveal">
+          <a class="btn btn-primary" href="#projects">查看项目</a>
+          <a class="btn btn-ghost" href="#contact">聊聊合作</a>
+        </div>
+        <dl class="stats reveal">
+          <div><dt>6<small>年</small></dt><dd>产品研发经验</dd></div>
+          <div><dt>40<small>+</small></dt><dd>交付项目</dd></div>
+          <div><dt>12<small>个</small></dt><dd>开源仓库</dd></div>
+        </dl>
+      </div>
+
+      <div class="hero-visual reveal" aria-hidden="true">
+        <div class="glow"></div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span></span><span></span><span></span>
+            <p>~/eos — zsh</p>
+          </div>
+          <pre class="terminal-body"><code><span class="t-p">$</span> whoami
+<span class="t-c"># 全栈开发者 · 产品设计 · 效率工具控</span>
+
+<span class="t-p">$</span> current_focus
+<span class="t-k">{</span>
+  <span class="t-s">"building"</span>: <span class="t-v">"个人全能站"</span>,
+  <span class="t-s">"learning"</span>: <span class="t-v">"AI Agent"</span>,
+  <span class="t-s">"open_to"</span>: <span class="t-b">true</span>
+<span class="t-k">}</span>
+
+<span class="t-p">$</span> ls skills/
+frontend  backend  design  automation
+
+<span class="t-p">$</span> echo "Nice to meet you."
+<span class="t-v">Nice to meet you.</span><span class="caret"></span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="section">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">01 / 关于</p>
+        <h2>用工程思维，做有温度的产品</h2>
+        <p class="section-sub">我相信好产品 = 清晰的逻辑 + 恰到好处的设计 + 可持续的工程实现。</p>
+      </header>
+      <div class="about-grid">
+        <div class="about-text reveal">
+          <p>
+            过去几年，我在不同规模的产品团队里做过前端架构、后端服务与设计协作。从 0 到 1 搭建过内容平台，
+            也维护过百万级请求的接口层。写代码之外，我热衷把重复的事情自动化，把个人的工作台打磨成一个「全能站」。
+          </p>
+          <p>
+            这个网站本身就是我的实验场：没有框架、没有构建步骤，只有语义化的 HTML、可维护的 CSS 变量与少量原生 JS，
+            追求首屏快、可读性强、长期可改。你可以在
+            <a href="#toolbox">工具箱</a> 里直接试用我日常在用的小工具。
+          </p>
+          <button class="copy-mail" id="copyMail" type="button" data-mail="hello@eos.space">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+            <span id="copyMailText">hello@eos.space · 点击复制</span>
+          </button>
+        </div>
+        <div class="value-cards">
+          <article class="value-card reveal">
+            <div class="value-num">01</div>
+            <h3>产品视角</h3>
+            <p>先想清楚「为什么做」，再决定「怎么做」。用最小成本验证，再逐步加厚。</p>
+          </article>
+          <article class="value-card reveal">
+            <div class="value-num">02</div>
+            <h3>工程质感</h3>
+            <p>可读的代码、可预期的性能、可回滚的发布。习惯把复杂度留在实现里，而不是交给用户。</p>
+          </article>
+          <article class="value-card reveal">
+            <div class="value-num">03</div>
+            <h3>设计克制</h3>
+            <p>少即是多。统一的设计令牌、稳定的间距节奏，让界面安静但清晰。</p>
+          </article>
+          <article class="value-card reveal">
+            <div class="value-num">04</div>
+            <h3>持续交付</h3>
+            <p>小步快跑，每周都有可见的进展。工具化一切可以重复的环节。</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Skills -->
+  <section id="skills" class="section">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">02 / 技能</p>
+        <h2>一套能独立完成产品的技术栈</h2>
+        <p class="section-sub">从界面到部署链路，尽量保持简单、可靠、可替换。</p>
+      </header>
+      <div class="skill-grid">
+        <article class="skill-card reveal">
+          <div class="skill-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg>
+          </div>
+          <h3>前端开发</h3>
+          <ul class="chips">
+            <li>TypeScript</li><li>React</li><li>Vue</li><li>Next.js</li><li>Tailwind</li><li>Three.js</li>
+          </ul>
+        </article>
+        <article class="skill-card reveal">
+          <div class="skill-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+          </div>
+          <h3>后端服务</h3>
+          <ul class="chips">
+            <li>Node.js</li><li>Python</li><li>PostgreSQL</li><li>Redis</li><li>Prisma</li><li>GraphQL</li>
+          </ul>
+        </article>
+        <article class="skill-card reveal">
+          <div class="skill-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/><path d="M4 21h16"/></svg>
+          </div>
+          <h3>设计与体验</h3>
+          <ul class="chips">
+            <li>Figma</li><li>设计系统</li><li>动效</li><li>原型</li><li>无障碍</li><li>信息架构</li>
+          </ul>
+        </article>
+        <article class="skill-card reveal">
+          <div class="skill-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7L12 2.5Z"/><path d="M12 12 3.5 7M12 12l8.5-5M12 12v9.5"/></svg>
+          </div>
+          <h3>工程与自动化</h3>
+          <ul class="chips">
+            <li>Git</li><li>CI/CD</li><li>Docker</li><li>脚本自动化</li><li>可观测性</li><li>测试</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Projects -->
+  <section id="projects" class="section">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">03 / 项目</p>
+        <h2>近期在做的一些东西</h2>
+        <p class="section-sub">挑选了几个能代表工作方式的项目，覆盖产品、数据与工具。</p>
+      </header>
+      <div class="project-grid">
+        <article class="project reveal">
+          <div class="project-top"><span class="mono">AT</span><span class="project-tag">前端 · 产品</span></div>
+          <h3>Atlas 笔记系统</h3>
+          <p>支持双向链接与图谱视图的个人知识库，本地优先、离线可用，写作体验专注。</p>
+          <ul class="project-meta"><li>React</li><li>IndexedDB</li><li>Canvas</li></ul>
+        </article>
+        <article class="project reveal">
+          <div class="project-top"><span class="mono">PL</span><span class="project-tag">数据可视化</span></div>
+          <h3>Pulse 实时看板</h3>
+          <p>面向运营的实时指标看板，秒级刷新、异常自动标红，支持自由拼装指标卡。</p>
+          <ul class="project-meta"><li>WebSocket</li><li>D3</li><li>Redis</li></ul>
+        </article>
+        <article class="project reveal">
+          <div class="project-top"><span class="mono">NM</span><span class="project-tag">移动端</span></div>
+          <h3>Nomad 行程助手</h3>
+          <p>把碎片化的机酒信息合并成一条时间线，自动提醒与花费统计，出行不再手忙脚乱。</p>
+          <ul class="project-meta"><li>Vue</li><li>Node.js</li><li>地图 API</li></ul>
+        </article>
+        <article class="project reveal">
+          <div class="project-top"><span class="mono">EC</span><span class="project-tag">音频工具</span></div>
+          <h3>Echo 播客工坊</h3>
+          <p>浏览器内的音频剪辑与降噪，自动生成章节与字幕，发布流程一站式完成。</p>
+          <ul class="project-meta"><li>WebAudio</li><li>WASM</li><li>FFmpeg</li></ul>
+        </article>
+        <article class="project reveal">
+          <div class="project-top"><span class="mono">LM</span><span class="project-tag">设计系统</span></div>
+          <h3>Lumen 设计令牌</h3>
+          <p>跨端一致的设计令牌与主题生成器，一处修改、全栈生效，暗色模式一键切换。</p>
+          <ul class="project-meta"><li>Tokens</li><li>Figma API</li><li>CSS 变量</li></ul>
+        </article>
+        <article class="project reveal">
+          <div class="project-top"><span class="mono">GT</span><span class="project-tag">自动化</span></div>
+          <h3>Gate 工作流网关</h3>
+          <p>把常用 SaaS 串成自动化流水线，支持条件分支与失败重试，替代大量手工操作。</p>
+          <ul class="project-meta"><li>Node.js</li><li>队列</li><li>Webhook</li></ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Toolbox -->
+  <section id="toolbox" class="section">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">04 / 工具箱</p>
+        <h2>三个开箱即用的小工具</h2>
+        <p class="section-sub">全部在浏览器本地运行，不上传任何数据。挑一个试试。</p>
+      </header>
+
+      <div class="toolbox reveal">
+        <div class="tabs" role="tablist" aria-label="工具切换">
+          <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-timer" id="tab-timer" type="button">番茄钟</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-count" id="tab-count" type="button">字数统计</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-palette" id="tab-palette" type="button">配色生成</button>
+        </div>
+
+        <!-- Pomodoro -->
+        <div class="panel active" id="panel-timer" role="tabpanel" aria-labelledby="tab-timer">
+          <div class="timer-wrap">
+            <div class="timer-ring">
+              <svg viewBox="0 0 220 220">
+                <circle class="ring-track" cx="110" cy="110" r="96"/>
+                <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="96"/>
+              </svg>
+              <div class="timer-face">
+                <div class="timer-time" id="timerTime">25:00</div>
+                <div class="timer-mode" id="timerMode">专注</div>
+              </div>
+            </div>
+            <div class="timer-side">
+              <div class="mode-switch" role="group" aria-label="计时模式">
+                <button class="mode active" data-min="25" type="button">专注 25</button>
+                <button class="mode" data-min="5" type="button">短休 5</button>
+                <button class="mode" data-min="15" type="button">长休 15</button>
+              </div>
+              <div class="timer-actions">
+                <button class="btn btn-primary" id="timerStart" type="button">开始</button>
+                <button class="btn btn-ghost" id="timerReset" type="button">重置</button>
+              </div>
+              <p class="hint" id="timerHint">专注一个番茄钟，然后休息 5 分钟。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Word counter -->
+        <div class="panel" id="panel-count" role="tabpanel" aria-labelledby="tab-count" hidden>
+          <textarea id="countInput" class="count-input" placeholder="在这里粘贴或输入文字，实时统计字符、词数与阅读时长……"></textarea>
+          <div class="count-stats">
+            <div><span id="statChars">0</span><small>字符</small></div>
+            <div><span id="statNoSpace">0</span><small>不含空格</small></div>
+            <div><span id="statWords">0</span><small>词数</small></div>
+            <div><span id="statLines">0</span><small>行数</small></div>
+            <div><span id="statRead">0 秒</span><small>阅读时长</small></div>
+          </div>
+        </div>
+
+        <!-- Palette -->
+        <div class="panel" id="panel-palette" role="tabpanel" aria-labelledby="tab-palette" hidden>
+          <div class="palette-head">
+            <p class="hint">按 <kbd>空格</kbd> 或点击按钮生成一套和谐配色，点击色块复制色值。</p>
+            <button class="btn btn-primary" id="paletteGen" type="button">生成配色</button>
+          </div>
+          <div class="palette" id="palette"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Notes -->
+  <section id="notes" class="section">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">05 / 随笔</p>
+        <h2>写下来，才算真的想清楚</h2>
+        <p class="section-sub">关于效率、工程与设计的一些记录。</p>
+      </header>
+      <div class="note-list">
+        <a class="note reveal" href="#notes">
+          <div class="note-date"><b>11</b><span>2026-11</span></div>
+          <div class="note-body">
+            <h3>用 30 天重建我的个人工作流</h3>
+            <p>从任务收集、分配到复盘，我删掉了 70% 的工具，只留下真正每天打开的四个。</p>
+            <div class="note-tags"><span>效率</span><span>方法论</span></div>
+          </div>
+          <span class="note-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="note reveal" href="#notes">
+          <div class="note-date"><b>26</b><span>2026-10</span></div>
+          <div class="note-body">
+            <h3>从零搭建设计系统的 12 条经验</h3>
+            <p>令牌先行、组件其次、文档最后。真实项目里踩过的坑，以及如何让团队真正用起来。</p>
+            <div class="note-tags"><span>设计系统</span><span>前端</span></div>
+          </div>
+          <span class="note-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="note reveal" href="#notes">
+          <div class="note-date"><b>09</b><span>2026-09</span></div>
+          <div class="note-body">
+            <h3>我的 2026 效率工具清单</h3>
+            <p>输入、输出、自动化三类工具各推荐两个，都是长期留在桌面上的那种。</p>
+            <div class="note-tags"><span>工具</span><span>清单</span></div>
+          </div>
+          <span class="note-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Timeline -->
+  <section class="section">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">06 / 经历</p>
+        <h2>一路走来的几个节点</h2>
+      </header>
+      <ol class="timeline">
+        <li class="reveal">
+          <div class="tl-time">2024 — 至今</div>
+          <div class="tl-body">
+            <h3>独立开发者 / 产品顾问</h3>
+            <p>为中小团队提供产品与前端架构咨询，同时孵化自己的效率工具产品线。</p>
+          </div>
+        </li>
+        <li class="reveal">
+          <div class="tl-time">2021 — 2024</div>
+          <div class="tl-body">
+            <h3>高级前端工程师</h3>
+            <p>负责内容平台前端架构，推动组件库与设计系统落地，首屏性能提升 45%。</p>
+          </div>
+        </li>
+        <li class="reveal">
+          <div class="tl-time">2019 — 2021</div>
+          <div class="tl-body">
+            <h3>全栈工程师</h3>
+            <p>从 0 到 1 搭建多个 B 端系统，负责接口设计、数据建模与发布流程自动化。</p>
+          </div>
+        </li>
+        <li class="reveal">
+          <div class="tl-time">2018 — 2019</div>
+          <div class="tl-body">
+            <h3>设计与开发双修</h3>
+            <p>在小型团队里同时承担界面设计与实现，形成了「设计即代码」的工作习惯。</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="section section-contact">
+    <div class="container">
+      <div class="contact-card reveal">
+        <p class="eyebrow">07 / 联系</p>
+        <h2>有想法？坐下来聊聊</h2>
+        <p class="section-sub">无论是产品合作、技术咨询，还是单纯想交换一下工具清单，都欢迎来信。</p>
+        <div class="contact-actions">
+          <a class="btn btn-primary" href="mailto:hello@eos.space">hello@eos.space</a>
+          <button class="btn btn-ghost" id="copyMail2" type="button" data-mail="hello@eos.space">复制邮箱</button>
+        </div>
+        <ul class="socials">
+          <li><a href="#top">GitHub</a></li>
+          <li><a href="#top">X / Twitter</a></li>
+          <li><a href="#top">即刻</a></li>
+          <li><a href="#top">RSS</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <p>© <span id="year">2026</span> Eos · 用原生 HTML 手写的个人全能站</p>
+    <a href="#top">回到顶部 ↑</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
