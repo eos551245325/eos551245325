@@ -1260,6 +1260,7 @@
   var planetProg = null, cloudProg = null;
   var sphere = null;
   var albedoTex = null, maskTex = null, cloudTex = null;
+  var teyvatAlbedoTex = null, teyvatMaskTex = null;
   var proj = null;
   var dist = distFromT(START_T), targetDist = dist;
   var yaw = 3.018, pitch = -0.493, vyaw = 0, vpitch = 0;
@@ -1299,8 +1300,19 @@
     "varying vec3 vView;",
     "uniform sampler2D uTex;",
     "uniform sampler2D uMask;",
+    "uniform sampler2D uTeyvatTex;",
+    "uniform sampler2D uTeyvatMaskTex;",
     "uniform vec3 uLight;",
     "uniform float uDetail;",
+    "uniform float uTeyvatEnabled;",
+    "",
+    "float radians(float deg) { return deg * 0.01745329251; }",
+    "",
+    "vec2 projectMercator(float lonRad, float latRad) {",
+    "  float x = lonRad / 6.283185307 + 0.5;",
+    "  float y = 0.5 - log(tan(1.570796327 + latRad * 0.5)) / 12.566370614;",
+    "  return vec2(x, y);",
+    "}",
     "",
     "float hash(vec2 p) {",
     "  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);",
@@ -1356,6 +1368,41 @@
     "  albedo *= 0.93 + 0.14 * fine * uDetail;",
     "  albedo *= 0.96 + 0.08 * micro * uDetail;",
     "  albedo += ocean * vec3(0.02, 0.05, 0.07) * (fine - 0.5) * uDetail;",
+    "",
+    "  // === 真实提瓦特地图像素化覆盖 ===",
+    "  if (uTeyvatEnabled > 0.5) {",
+    "    // 球面 UV → 经纬度（等距圆柱）",
+    "    float lonRad = vUv.x * 6.283185307 - 3.141592653;",
+    "    float latRad = 1.570796327 - vUv.y * 3.141592653;",
+    "    float lonDeg = lonRad * 57.29577951;",
+    "    float latDeg = latRad * 57.29577951;",
+    "",
+    "    // 提瓦特地图经纬度范围（手工拟合自观测枢 tiles）",
+    "    // 左下 ≈ (-10°W, -38°S), 右上 ≈ (+135°E, +62°N)",
+    "    float tlx = (lonDeg - (-10.0)) / (135.0 - (-10.0));",
+    "    float tly = (latDeg - (-38.0)) / (62.0 - (-38.0));",
+    "",
+    "    // Web Mercator 纬度校正（更贴合观测枢的投影）",
+    "    float latN = clamp(latDeg * 0.01745329251, -1.484, 1.484);",
+    "    float mercY = 0.5 - log(tan(1.570796327 + latN * 0.5)) / 12.566370614;",
+    "    float mercYTop = 0.5 - log(tan(1.570796327 + radians(62.0) * 0.5)) / 12.566370614;",
+    "    float mercYBot = 0.5 - log(tan(1.570796327 + radians(-38.0) * 0.5)) / 12.566370614;",
+    "    tly = clamp((mercY - mercYBot) / (mercYTop - mercYBot), 0.0, 1.0);",
+    "    tlx = clamp(tlx, 0.0, 1.0);",
+    "",
+    "    bool inMap = (tlx > -0.02 && tlx < 1.02 && tly > -0.02 && tly < 1.02);",
+    "    if (inMap) {",
+    "      vec4 tAlbedo = texture2D(uTeyvatTex, vec2(tlx, tly));",
+    "      float tMask = texture2D(uTeyvatMaskTex, vec2(tlx, tly)).r;",
+    "      // 边缘软混合，避免硬切",
+    "      float edge = smoothstep(0.0, 0.04, tlx) * smoothstep(0.0, 0.04, 1.0 - tlx) *",
+    "                   smoothstep(0.0, 0.04, tly) * smoothstep(0.0, 0.04, 1.0 - tly);",
+    "      float landBlend = tMask * edge;",
+    "      albedo = mix(albedo, tAlbedo.rgb, landBlend);",
+    "      // 修正 ocean 判断：陆地 → ocean=0",
+    "      ocean = mix(ocean, 0.0, tMask);",
+    "    }",
+    "  }",
     "",
     "  float ndl = max(dot(Nb, uLight), 0.0);",
     "  float ndlSoft = dot(Nb, uLight) * 0.5 + 0.5;",
@@ -1435,7 +1482,10 @@
       uOpacity: gl.getUniformLocation(p, "uOpacity"),
       uTex: gl.getUniformLocation(p, "uTex"),
       uMask: gl.getUniformLocation(p, "uMask"),
-      uClouds: gl.getUniformLocation(p, "uClouds")
+      uClouds: gl.getUniformLocation(p, "uClouds"),
+      uTeyvatTex: gl.getUniformLocation(p, "uTeyvatTex"),
+      uTeyvatMaskTex: gl.getUniformLocation(p, "uTeyvatMaskTex"),
+      uTeyvatEnabled: gl.getUniformLocation(p, "uTeyvatEnabled")
     };
   }
 
@@ -1552,6 +1602,14 @@
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, maskTex);
     gl.uniform1i(planetProg.uMask, 1);
+    // 真实提瓦特地图像素纹理
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, teyvatAlbedoTex || albedoTex);
+    gl.uniform1i(planetProg.uTeyvatTex, 2);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, teyvatMaskTex || maskTex);
+    gl.uniform1i(planetProg.uTeyvatMaskTex, 3);
+    gl.uniform1f(planetProg.uTeyvatEnabled, teyvatAlbedoTex ? 1.0 : 0.0);
     gl.drawElements(gl.TRIANGLES, sphere.count, gl.UNSIGNED_SHORT, 0);
 
     var cy = yaw + cloudSpin;
@@ -1910,6 +1968,23 @@
       lastFrame = 0;
       requestAnimationFrame(frame);
       setTimeout(hideHint, 9000);
+
+      // 异步加载真实提瓦特地图像素纹理
+      function loadTeyvatImg(src, onDone) {
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function () { onDone(img); };
+        img.onerror = function () { onDone(null); };
+        img.src = src;
+      }
+      loadTeyvatImg("teyvat-albedo.png", function (img) {
+        if (!img || !gl) return;
+        try { teyvatAlbedoTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, teyvatAlbedoTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.generateMipmap(gl.TEXTURE_2D); } catch (e) {}
+      });
+      loadTeyvatImg("teyvat-mask.png", function (img) {
+        if (!img || !gl) return;
+        try { teyvatMaskTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, teyvatMaskTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); gl.generateMipmap(gl.TEXTURE_2D); } catch (e) {}
+      });
     });
   }
 
