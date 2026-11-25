@@ -1238,3 +1238,304 @@ body.cmd-open { overflow: hidden; }
   .terminal-body { max-height: 260px; }
   .cmd-overlay { padding: 8vh 14px 30px; }
 }
+
+/* ============================================================
+   04 · 提瓦特星球（WebGL）
+   ============================================================ */
+.section-planet .section-head { max-width: 780px; }
+
+.planet-shell { position: relative; }
+
+.planet-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(430px, 68vh, 680px);
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background:
+    radial-gradient(ellipse 70% 90% at 72% 18%, rgba(124, 92, 255, 0.18), transparent 62%),
+    radial-gradient(ellipse 60% 70% at 18% 82%, rgba(34, 211, 238, 0.12), transparent 62%),
+    radial-gradient(circle at 50% 48%, #0b0d20 0%, #05060d 72%);
+  box-shadow: var(--shadow), inset 0 0 90px rgba(124, 92, 255, 0.09);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.planet-stage:active { cursor: grabbing; }
+.planet-stage:fullscreen { height: 100vh; border: 0; border-radius: 0; }
+
+.planet-stars,
+.planet-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.planet-stars { z-index: 1; opacity: 0.95; }
+.planet-canvas { z-index: 2; }
+
+/* 区域标签层 */
+.planet-labels { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.planet-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 10, 22, 0.58);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #f3f5ff;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.9);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  box-shadow: 0 6px 20px -10px rgba(0, 0, 0, 0.8);
+  will-change: left, top;
+}
+.planet-label.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.planet-label i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot, #7c5cff);
+  box-shadow: 0 0 9px var(--dot, #7c5cff);
+  flex: 0 0 auto;
+}
+.planet-label small {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(226, 232, 255, 0.6);
+}
+.planet-label em {
+  font-style: normal;
+  color: rgba(226, 232, 255, 0.45);
+  font-size: 10px;
+}
+
+/* 加载态 */
+.planet-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background: rgba(5, 6, 13, 0.78);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  transition: opacity 0.55s ease;
+}
+.planet-loading.hide { opacity: 0; pointer-events: none; }
+.planet-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--accent-2);
+  animation: planet-spin 0.95s linear infinite;
+}
+@keyframes planet-spin { to { transform: rotate(360deg); } }
+
+/* 降级视图 */
+.planet-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 26px;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: radial-gradient(circle at 50% 45%, rgba(124, 92, 255, 0.14), transparent 60%);
+}
+.planet-fallback[hidden] { display: none; }
+.fallback-orb {
+  width: min(260px, 46vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, #9fe4ff 0%, #3f8ec9 26%, #1c4f86 52%, #0a1d3a 74%, #05060d 100%);
+  box-shadow:
+    inset -34px -24px 70px rgba(0, 0, 0, 0.72),
+    inset 12px 12px 50px rgba(160, 225, 255, 0.25),
+    0 0 90px rgba(34, 211, 238, 0.28);
+}
+
+/* 操作提示 */
+.planet-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 5;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 10, 22, 0.44);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: rgba(226, 232, 255, 0.64);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.planet-hint.hide { opacity: 0; }
+
+/* 缩放 HUD */
+.planet-hud {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 10, 22, 0.52);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.planet-zoom { display: flex; align-items: center; gap: 8px; }
+.planet-icon-btn {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef1ff;
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.planet-icon-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.planet-icon-btn:active { transform: scale(0.9); }
+#planetZoom {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 132px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  outline: none;
+  cursor: pointer;
+}
+#planetZoom::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--accent-2);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+}
+#planetZoom::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--accent-2);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.8);
+}
+.planet-alt {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(226, 232, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 右上工具 */
+.planet-tools {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  max-width: calc(100% - 28px);
+}
+.planet-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 10, 22, 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: rgba(226, 232, 255, 0.72);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.planet-chip:hover { color: #fff; border-color: rgba(255, 255, 255, 0.28); }
+.planet-chip:active { transform: scale(0.96); }
+.planet-chip.active {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #08080f;
+  font-weight: 600;
+}
+
+/* 七国图例 */
+.planet-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.planet-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.planet-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot, #7c5cff);
+  box-shadow: 0 0 10px var(--dot, #7c5cff);
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .planet-stage { height: clamp(360px, 58vh, 520px); border-radius: 18px; }
+  .planet-tools { top: 10px; right: 10px; gap: 6px; }
+  .planet-chip { padding: 5px 9px; font-size: 10.5px; }
+  .planet-hud { left: 10px; bottom: 10px; gap: 8px; padding: 6px 10px; }
+  #planetZoom { width: 84px; }
+  .planet-alt { display: none; }
+  .planet-hint { display: none; }
+  .planet-label { font-size: 10.5px; padding: 3px 8px 3px 7px; }
+  .planet-label small { display: none; }
+}
+

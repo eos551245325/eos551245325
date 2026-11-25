@@ -25,6 +25,7 @@
       <a href="#about">关于</a>
       <a href="#skills">技能</a>
       <a href="#projects">项目</a>
+      <a href="#planet">星球</a>
       <a href="#toolbox">工具箱</a>
       <a href="#notes">随笔</a>
       <a href="#contact">联系</a>
@@ -255,11 +256,69 @@
     </div>
   </section>
 
+  <!-- Teyvat Planet -->
+  <section id="planet" class="section section-planet">
+    <div class="container">
+      <header class="section-head reveal">
+        <p class="eyebrow">04 / 星球</p>
+        <h2>提瓦特星球 · 可缩放的 3D 世界</h2>
+        <p class="section-sub">拖拽旋转、滚轮或双指缩放，一路推到地表。星空、海陆与七国全部由 WebGL 程序化生成，不依赖任何外部资源。</p>
+      </header>
+
+      <div class="planet-shell reveal">
+        <div class="planet-stage" id="planetStage">
+          <canvas class="planet-stars" id="planetStars" aria-hidden="true"></canvas>
+          <canvas class="planet-canvas" id="planetCanvas" aria-label="可交互的提瓦特 3D 星球"></canvas>
+
+          <div class="planet-labels" id="planetLabels" aria-hidden="true"></div>
+
+          <div class="planet-loading" id="planetLoading">
+            <span class="planet-spinner"></span>
+            <p>正在编织提瓦特…</p>
+          </div>
+
+          <div class="planet-fallback" id="planetFallback" hidden>
+            <div class="fallback-orb" aria-hidden="true"></div>
+            <p>当前浏览器未启用 WebGL，已切换为静态星球视图。</p>
+          </div>
+
+          <div class="planet-hint" id="planetHint">拖拽旋转 · 滚轮缩放 · 双击重置</div>
+
+          <div class="planet-hud">
+            <div class="planet-zoom">
+              <button class="planet-icon-btn" id="planetZoomOut" type="button" aria-label="缩小">−</button>
+              <input id="planetZoom" type="range" min="0" max="1000" value="260" aria-label="缩放星球" />
+              <button class="planet-icon-btn" id="planetZoomIn" type="button" aria-label="放大">+</button>
+            </div>
+            <span class="planet-alt" id="planetAlt">距地表 12,000 km</span>
+          </div>
+
+          <div class="planet-tools">
+            <button class="planet-chip active" id="planetSpin" type="button">自动旋转</button>
+            <button class="planet-chip active" id="planetTags" type="button">区域标签</button>
+            <button class="planet-chip" id="planetReset" type="button">重置视角</button>
+            <button class="planet-chip" id="planetFull" type="button">全屏</button>
+          </div>
+        </div>
+
+        <ul class="planet-legend" aria-label="提瓦特七国">
+          <li><i style="--dot:#7fbf5f"></i>蒙德</li>
+          <li><i style="--dot:#d9b168"></i>璃月</li>
+          <li><i style="--dot:#b07fd8"></i>稻妻</li>
+          <li><i style="--dot:#4fae7a"></i>须弥</li>
+          <li><i style="--dot:#6fb8d8"></i>枫丹</li>
+          <li><i style="--dot:#d86a4a"></i>纳塔</li>
+          <li><i style="--dot:#cfe6f5"></i>至冬</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- Toolbox -->
   <section id="toolbox" class="section">
     <div class="container">
       <header class="section-head reveal">
-        <p class="eyebrow">04 / 工具箱</p>
+        <p class="eyebrow">05 / 工具箱</p>
         <h2>三个开箱即用的小工具</h2>
         <p class="section-sub">全部在浏览器本地运行，不上传任何数据。挑一个试试。</p>
       </header>
@@ -327,7 +386,7 @@
   <section id="notes" class="section">
     <div class="container">
       <header class="section-head reveal">
-        <p class="eyebrow">05 / 随笔</p>
+        <p class="eyebrow">06 / 随笔</p>
         <h2>写下来，才算真的想清楚</h2>
         <p class="section-sub">关于效率、工程与设计的一些记录。</p>
       </header>
@@ -367,7 +426,7 @@
   <section class="section">
     <div class="container">
       <header class="section-head reveal">
-        <p class="eyebrow">06 / 经历</p>
+        <p class="eyebrow">07 / 经历</p>
         <h2>一路走来的几个节点</h2>
       </header>
       <ol class="timeline">
@@ -407,7 +466,7 @@
   <section id="contact" class="section section-contact">
     <div class="container">
       <div class="contact-card reveal">
-        <p class="eyebrow">07 / 联系</p>
+        <p class="eyebrow">08 / 联系</p>
         <h2>有想法？坐下来聊聊</h2>
         <p class="section-sub">无论是产品合作、技术咨询，还是单纯想交换一下工具清单，都欢迎来信。</p>
         <div class="contact-actions">
